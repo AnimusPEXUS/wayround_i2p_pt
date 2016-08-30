@@ -1,8 +1,16 @@
 
 import regex
 
-import wayround_org.abnf.core
+import wayround_org.parserconstructor.ast
 
+PARSERS = {
+    'rulelist': parse_rulelist
+}
+
+def parse_rulelist(text, start_index, end_index):
+    ret = wayround_org.parserconstructor.ast.Node()
+    
+    return
 
 RULES = wayround_org.abnf.utils.Rules(
     {
@@ -66,7 +74,7 @@ RULES = wayround_org.abnf.utils.Rules(
 
         'char-val': (
             r'({DQUOTE})'
-            r'([\x20-\x21]|[\x23-\x7e])'
+            r'([\x20-\x21]|[\x23-\x7e])*'
             r'({DQUOTE})'
             ),
         # ; quoted string of SP and VCHAR

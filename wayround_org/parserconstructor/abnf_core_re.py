@@ -1,5 +1,5 @@
 
-import wayround_org.abnf.utils
+import wayround_org.parserconstructor.utils
 
 
 RULES = wayround_org.abnf.utils.Rules(
