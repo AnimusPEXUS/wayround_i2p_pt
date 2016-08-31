@@ -4,8 +4,6 @@ class Node:
 
     def __init__(self):
 
-        self._src_text = None
-
         self._name = None
 
         self._index0 = None
@@ -16,16 +14,8 @@ class Node:
         self._children = []
         return
 
-    @property
-    def src_text(self):
-        return self._src_text
-
-    @src_text.setter
-    def src_text(self, value):
-        if not isinstance(value, str):
-            raise TypeError("`src_text' must be str")
-        self._src_text = value
-        return
+    def __getitem__(self, index):
+        return self._children[index]
 
     @property
     def name(self):

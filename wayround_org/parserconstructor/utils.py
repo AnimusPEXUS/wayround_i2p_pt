@@ -2,6 +2,32 @@
 import regex
 import itertools
 
+RULENAME_RE = (
+    r'\{'
+    r'([\x41-\x5A]|[\x61-\x7A])'
+    r'((([\x41-\x5A]|[\x61-\x7A]))|([\x30-\x39])|-)*'
+    r'\}'
+    )
+RULENAME_RE_C = regex.compile(RULENAME_RE)
+
+
+class RuleC:
+
+    def __init__(self, rules):
+        if not isinstance(rules, Rules):
+            raise TypeError("`rules' must be Rules inst")
+        self._rules = rules
+        self._c = {}
+        return
+
+    def __getitem__(self, key):
+        if key in self._c:
+            ret = self._c[key]
+        else:
+            ret = regex.compile(self._rules[key])
+            self._c[key] = ret
+        return ret
+
 
 class Rules:
 
@@ -18,17 +44,18 @@ class Rules:
                 raise TypeError("`parents' must be list of Rules")
 
         self._rules = {}
+        self._res = {}
 
-        for i in parents:
-            for j in i:
-                if j in self._rules:
+        for parent in parents:
+            for rule in parent:
+                if rule in self.rule_raw:
                     raise Exception(
                         "error: parent `{}' resets rule `{}'".format(
-                            i,
-                            j
+                            parent,
+                            rule
                             )
                         )
-                self._rules[j] = i[j]
+                self._rules[rule] = parent[rule]
 
         for i in rules:
             if i in self._rules:
@@ -37,7 +64,13 @@ class Rules:
                     )
             self._rules[i] = rules[i]
 
+        self.rule_c = RuleC(self)
+
         return
+
+    @property
+    def rule_raw(self):
+        return self._rules
 
     def __iter__(self):
         ret = iter(self._rules)
@@ -45,9 +78,22 @@ class Rules:
 
     def __getitem__(self, key):
 
-        ret = self._rules[key]
+        if key in self._res:
+            ret = self._res[key]
 
-        ret = ret.format_map(self._rules)
+        else:
+            ret = self._rules[key]
+
+            count_down = 10
+
+            while RULENAME_RE_C.search(ret) is not None:
+                ret = ret.format_map(self._rules)
+                count_down -= 1
+
+                if count_down == -1:
+                    raise RecursionError("depth limit reached")
+
+            self._res[key] = ret
 
         return ret
 
@@ -60,7 +106,7 @@ class Rules:
         return ret
 
     def keys(self):
-        ret = self._rules.keys()
+        ret = list(self._rules.keys())
         return ret
 
 
@@ -117,7 +163,7 @@ def any_number(text, start, callback, *args, **kwargs):
 
         res = callback(text, start, *args, **kwargs)
 
-        if is None:
+        if res is None:
             break
 
         for i in res:
@@ -154,4 +200,3 @@ def parse_next_re(text, start, re_, name='string'):
         ret.index1 = res.end()
 
     return ret
-

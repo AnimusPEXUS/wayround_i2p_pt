@@ -2,17 +2,10 @@
 import regex
 
 import wayround_org.parserconstructor.ast
+import wayround_org.parserconstructor.abnf_core_re
 
-PARSERS = {
-    'rulelist': parse_rulelist
-}
 
-def parse_rulelist(text, start_index, end_index):
-    ret = wayround_org.parserconstructor.ast.Node()
-    
-    return
-
-RULES = wayround_org.abnf.utils.Rules(
+RULES = wayround_org.parserconstructor.utils.Rules(
     {
         'rulelist': r'(({rule})|({c-wsp})*{c-nl})+',
 
@@ -100,5 +93,5 @@ RULES = wayround_org.abnf.utils.Rules(
         # ; prose description, to be used as
         # ;  last resort
         },
-    [wayround_org.abnf.core.RULES]
+    [wayround_org.parserconstructor.abnf_core_re.RULES]
     )

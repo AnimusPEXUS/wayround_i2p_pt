@@ -1,14 +1,27 @@
 
+"""
+This module is hand-written abnf2ast parser
+"""
+
 import regex
 
 import wayround_org.parserconstructor.ast
 
 
 BIT_RE = r'[01]'
+BIT_RE_C = regex.compile(BIT_RE)
 
 DIGIT_RE = r'[\x30-\x39]'
+DIGIT_RE_C = regex.compile(DIGIT_RE)
 
-HEXDIG_RE = r'(({DIGIT})|A|B|C|D|E|F)'
+HEXDIG_RE = r'(({DIGIT})|A|B|C|D|E|F)'.format(DIGIT=DIGIT_RE)
+HEXDIG_RE_C = regex.compile(HEXDIG_RE)
+
+ALPHA_RE = r'([\x41-\x5A]|[\x61-\x7A])'
+ALPHA_RE_C = regex.compile(ALPHA_RE)
+
+WSP_RE =
+WSP_RE_C = regex.compile(WSP_RE)
 
 
 def parse(text):
@@ -137,6 +150,15 @@ def parse_next_rulename(text, start):
     if ret is not None:
         ret.reset_indexes_by_children()
 
+    return ret
+
+
+def parse_next_hyphen(text, start):
+    ret = wayround_org.parserconstructor.utils.parse_next_re(
+        text,
+        start,
+        r'\-'
+        )
     return ret
 
 
@@ -606,13 +628,13 @@ def parse_next_num_val(text, start):
 
     res = wayround_org.parserconstructor.utils.parse_next_re(
         text, start, r'\%'
-
-        if res is None:
-        ret=None
-
-        if ret is not None:
-        ret.append_child(res)
         )
+
+    if res is None:
+        ret = None
+
+    if ret is not None:
+        ret.append_child(res)
 
     if ret is not None:
 
@@ -700,7 +722,13 @@ def parse_next_x_val(text, start, prefix, target_node):
 
         elif text[start] == '-' and digit_parser(text, start + 1) is not None:
 
-            res = parse_next_re(text, start, r'\-({})+'.format(digit_re))
+            res = wayround_org.utils.parse_next_re(
+                text,
+                start,
+                r'\-({})+'.format(
+                    digit_re
+                    )
+                )
 
             if res is not None:
                 ret.append_child(res)
@@ -727,12 +755,12 @@ def parse_next_bin_val(text, start):
     return ret
 
 
-def parse_next_(text, start):
+def parse_next_dec_val(text, start):
     r'd({DIGIT})+((\.({DIGIT})+)+|(\-({DIGIT})+))?'
     ret = wayround_org.parserconstructor.ast.Node()
     ret.name = 'dec-val'
 
-    if not parse_parse_next_x_val(text, start, 'd', parse_next_DEC, ret):
+    if not parse_parse_next_x_val(text, start, 'd', parse_next_DIGIT, ret):
         ret = None
 
     if ret is not None:
@@ -746,7 +774,7 @@ def parse_next_hex_val(text, start):
     ret = wayround_org.parserconstructor.ast.Node()
     ret.name = 'hex-val'
 
-    if not parse_parse_next_x_val(text, start, 'x', parse_next_HEX, ret):
+    if not parse_parse_next_x_val(text, start, 'x', parse_next_HEXDIG, ret):
         ret = None
 
     if ret is not None:
@@ -760,7 +788,123 @@ def parse_next_prose_val(text, start):
     ret = wayround_org.parserconstructor.ast.Node()
     ret.name = 'prose-val'
 
+    res = wayround_org.parserconstructor.utils.parse_next_re(
+        text, start, r'\<'
+        )
+
+    if res is None:
+        ret = None
+
+    if ret is not None:
+        ret.append_child(res)
+        start = res.index1
+
+    if ret is not None:
+
+        res = wayround_org.parserconstructor.utils.parse_next_re(
+            text, start, r'([\x20-\x3d]|[\x3f-\x7e])*'
+            )
+
+        if res is None:
+            ret = None
+
+        if ret is not None:
+            ret.append_child(res)
+            start = res.index1
+
+    if ret is not None:
+
+        res = wayround_org.parserconstructor.utils.parse_next_re(
+            text, start, r'\>'
+            )
+
+        if res is None:
+            ret = None
+
+        if ret is not None:
+            ret.append_child(res)
+
     if ret is not None:
         ret.reset_indexes_by_children()
+
+    return ret
+
+
+def parse_next_HEXDIG(text, start):
+    ret = wayround_org.parserconstructor.ast.Node()
+    ret.name = 'HEXDIG'
+
+    res = HEXDIG_RE_C.match(text, pos=start)
+
+    if res is None:
+        ret = None
+
+    if ret is not None:
+        ret.index0 = res.start()
+        ret.index1 = res.end()
+
+    return ret
+
+
+def parse_next_DIGIT(text, start):
+    ret = wayround_org.parserconstructor.ast.Node()
+    ret.name = 'DIGIT'
+
+    res = DIGIT_RE_C.match(text, pos=start)
+
+    if res is None:
+        ret = None
+
+    if ret is not None:
+        ret.index0 = res.start()
+        ret.index1 = res.end()
+
+    return ret
+
+
+def parse_next_BIT(text, start):
+    ret = wayround_org.parserconstructor.ast.Node()
+    ret.name = 'BIT'
+
+    res = BIT_RE_C.match(text, pos=start)
+
+    if res is None:
+        ret = None
+
+    if ret is not None:
+        ret.index0 = res.start()
+        ret.index1 = res.end()
+
+    return ret
+
+
+def parse_next_ALPHA(text, start):
+    ret = wayround_org.parserconstructor.ast.Node()
+    ret.name = 'ALPHA'
+
+    res = ALPHA_RE_C.match(text, pos=start)
+
+    if res is None:
+        ret = None
+
+    if ret is not None:
+        ret.index0 = res.start()
+        ret.index1 = res.end()
+
+    return ret
+
+
+def parse_next_WSP(text, start):
+    ret = wayround_org.parserconstructor.ast.Node()
+    ret.name = 'WSP'
+
+    res = WSP_RE_C.match(text, pos=start)
+
+    if res is None:
+        ret = None
+
+    if ret is not None:
+        ret.index0 = res.start()
+        ret.index1 = res.end()
 
     return ret

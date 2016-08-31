@@ -2,7 +2,7 @@
 import wayround_org.parserconstructor.utils
 
 
-RULES = wayround_org.abnf.utils.Rules(
+RULES = wayround_org.parserconstructor.utils.Rules(
     {
         'ALPHA': r'([\x41-\x5A]|[\x61-\x7A])',  # ; A-Z / a-z'
 
