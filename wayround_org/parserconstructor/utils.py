@@ -11,7 +11,7 @@ RULENAME_RE = (
 RULENAME_RE_C = regex.compile(RULENAME_RE)
 
 
-class RuleC:
+class _RuleC:
 
     def __init__(self, rules):
         if not isinstance(rules, Rules):
@@ -64,7 +64,7 @@ class Rules:
                     )
             self._rules[i] = rules[i]
 
-        self.rule_c = RuleC(self)
+        self.rule_c = _RuleC(self)
 
         return
 
