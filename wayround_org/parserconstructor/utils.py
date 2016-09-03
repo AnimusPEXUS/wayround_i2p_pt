@@ -2,6 +2,9 @@
 import regex
 import itertools
 
+import wayround_org.parserconstructor.ast
+
+
 RULENAME_RE = (
     r'\{'
     r'([\x41-\x5A]|[\x61-\x7A])'
@@ -9,6 +12,17 @@ RULENAME_RE = (
     r'\}'
     )
 RULENAME_RE_C = regex.compile(RULENAME_RE)
+
+
+class ErrorNote:
+
+    def __init__(self, text, index0, index1=None):
+        if index1 is None:
+            index1 = index0
+        self.text = text
+        self.index0 = index0
+        self.index1 = index1
+        return
 
 
 class _RuleC:
@@ -64,7 +78,7 @@ class Rules:
                     )
             self._rules[i] = rules[i]
 
-        self.rule_c = _RuleC(self)
+        self.compiled = _RuleC(self)
 
         return
 
@@ -110,15 +124,23 @@ class Rules:
         return ret
 
 
-def and_(text, start, parser_list):
+def and_(text, start, error_log, parser_list):
+
+    check_parser_list(parser_list)
 
     ret = []
 
     for i in parser_list:
 
-        res = i(text, start)
+        res = i(text, start, error_log)
 
         if not isinstance(res, wayround_org.parserconstructor.ast.Node):
+            error_log.append(
+                ErrorNote(
+                    "AND statement didn't succeeded with parser {}".format(i),
+                    start
+                    )
+                )
             ret = None
 
         if ret is None:
@@ -130,28 +152,37 @@ def and_(text, start, parser_list):
     return ret
 
 
-def or_(text, start, parser_list):
+def or_(text, start, error_log, parser_list):
     """
     return: None or list with one and only one element
     """
+
+    check_parser_list(parser_list)
 
     ret = []
 
     for i in parser_list:
 
-        res = i(text, loop_start)
+        res = i(text, start, error_log)
 
         if isinstance(res, wayround_org.parserconstructor.ast.Node):
             ret.append(res)
+            # start = res.index1 # not needed here
             break
 
     if len(ret) == 0:
+        error_log.append(
+            ErrorNote(
+                "OR statement didn't succeeded at any case"
+                ),
+            start
+            )
         ret = None
 
     return ret
 
 
-def any_number(text, start, callback, *args, **kwargs):
+def any_number(text, start, error_log, callback, *args, **kwargs):
     """
     text and start are passed to callback inconditionally. args and kwargs may
     be passed by your desire
@@ -159,20 +190,33 @@ def any_number(text, start, callback, *args, **kwargs):
 
     ret = []
 
-    while True:
+    res = callback(text, start, error_log, *args, **kwargs)
 
-        res = callback(text, start, *args, **kwargs)
+    # NOTE: if res is None, this is not error in context of any_number(),
+    #       as such error must be treated as resulting number eql to 0
+    #
+    #       so if res is not None, then it's must be list and it's contents
+    #       need to be added to ret list
 
-        if res is None:
-            break
+    if res is not None:
+
+        if not isinstance(res, list):
+            raise ValueError("`callback()' must return None or list of Node")
+
+        for i in res:
+            if not isinstance(i, Node):
+                raise ValueError(
+                    "`callback()' must return None or list of Node"
+                    )
 
         for i in res:
             ret.append(i)
+            start = i.index1
 
     return ret
 
 
-def parse_next_re(text, start, re_, name='string'):
+def parse_next_re(text, start, error_log, re_, name='string'):
     """
     creates special ast node representing simple string. matching text directly
 
@@ -184,8 +228,7 @@ def parse_next_re(text, start, re_, name='string'):
     .match() method.
     """
 
-    ret = wayround_org.parserconstructor.ast.Node()
-    ret.name = name
+    ret = wayround_org.parserconstructor.ast.Node(name, start)
 
     if isinstance(re_, str):
         re_ = regex.compile(re_)
@@ -193,6 +236,12 @@ def parse_next_re(text, start, re_, name='string'):
     res = re_.match(text, pos=start)
 
     if res is None:
+        error_log.append(
+            ErrorNote(
+                "Can't parse string as re ({})".format(re_),
+                start
+                )
+            )
         ret = None
 
     if ret is not None:
@@ -200,3 +249,14 @@ def parse_next_re(text, start, re_, name='string'):
         ret.index1 = res.end()
 
     return ret
+
+
+def check_parser_list(parser_list):
+    if not isinstance(parser_list, list):
+        raise TypeError("`parser_list' must be list")
+
+    for i in parser_list:
+        if not callable(i):
+            raise ValueError("`parser_list' items must be callable")
+
+    return

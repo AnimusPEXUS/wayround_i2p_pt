@@ -2,7 +2,7 @@
 
 class Node:
 
-    def __init__(self):
+    def __init__(self, name, index0):
 
         self._name = None
 
@@ -12,10 +12,17 @@ class Node:
         self._parent = None
 
         self._children = []
+
+        self.name = name
+        self.index0 = index0
+
         return
 
     def __getitem__(self, index):
         return self._children[index]
+
+    def __len__(self):
+        return len(self._children)
 
     @property
     def name(self):
@@ -27,10 +34,6 @@ class Node:
             raise TypeError("`name' must be str")
         self._name = value
         return
-
-    def text(self):
-        ret = self._src_text[self._index0:self._index1]
-        return ret
 
     @property
     def index0(self):
@@ -84,6 +87,13 @@ class Node:
         return
 
     def append_children_from_list(self, lst):
+        if not isinstance(lst, list):
+            raise TypeError("`lst' must be list of Node")
+
+        for i in lst:
+            if not isinstance(i, Node):
+                raise TypeError("`lst' must be list of Node")
+
         for i in lst:
             self.append_child(i)
         return
@@ -93,5 +103,13 @@ class Node:
             self.index0 = self[0].index0
             self.index1 = self[-1].index1
         else:
-            raise Exception("this node has no children")
+            if self.index0 is None:
+                raise Exception(
+                    "this node has no children ({}:{}),"
+                    " and self.index0 is None".format(
+                        self,
+                        self.name
+                        )
+                    )
+            self.index1 = self.index0
         return

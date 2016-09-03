@@ -5,7 +5,7 @@ This module is hand-written abnf2ast parser
 """
 
 
-import regex
+# import regex
 
 import wayround_org.parserconstructor.ast
 import wayround_org.parserconstructor.abnf_core_h
@@ -102,45 +102,25 @@ RULES = wayround_org.parserconstructor.utils.Rules(
     [wayround_org.parserconstructor.abnf_core_h.RULES]
     )
 
-BIT_RE = r'[01]'
-BIT_RE_C = regex.compile(BIT_RE)
 
-DIGIT_RE = r'[\x30-\x39]'
-DIGIT_RE_C = regex.compile(DIGIT_RE)
-
-HEXDIG_RE = r'(({DIGIT})|A|B|C|D|E|F)'.format(DIGIT=DIGIT_RE)
-HEXDIG_RE_C = regex.compile(HEXDIG_RE)
-
-ALPHA_RE = r'([\x41-\x5A]|[\x61-\x7A])'
-ALPHA_RE_C = regex.compile(ALPHA_RE)
-
-WSP_RE =
-WSP_RE_C = regex.compile(WSP_RE)
-
-
-def parse(text):
-    ret = parse_next_rulelist(text, 0)
+def parse(text, error_log):
+    ret = parse_next_rulelist(text, 0, error_log)
     return ret
 
 
-def parse_next_rulelist(text, start):
+def parse_next_rulelist(text, start, error_log):
     r'(({rule})|({c-wsp})*{c-nl})+'
 
-    ret = wayround_org.parserconstructor.ast.Node()
-    ret.name = 'rulelist'
-
-    loop_start = start
+    ret = wayround_org.parserconstructor.ast.Node('rulelist', start)
 
     res = wayround_org.parserconstructor.utils.any_number(
         text,
         start,
         wayround_org.parserconstructor.utils.or_,
-        (
-            [
-                parse_next_rule,
-                parse_next_c_wsp
-                ],
-            )
+        [
+            parse_next_rule,
+            parse_next_c_wsp
+            ]
         )
 
     if res is None:
@@ -155,12 +135,10 @@ def parse_next_rulelist(text, start):
             text,
             start,
             wayround_org.parserconstructor.utils.or_,
-            (
-                [
-                    parse_next_rule,
-                    parse_next_c_wsp
-                    ],
-                )
+            [
+                parse_next_rule,
+                parse_next_c_wsp
+                ]
             )
 
     if ret is not None:
@@ -184,11 +162,10 @@ def parse_next_rulelist(text, start):
     return ret
 
 
-def parse_next_rule(text, start):
+def parse_next_rule(text, start, error_log):
     r'({rulename})({defined-as})({elements})({c-nl})'
 
-    ret = wayround_org.parserconstructor.ast.Node()
-    ret.name = 'rule'
+    ret = wayround_org.parserconstructor.ast.Node('rule', start)
 
     res = wayround_org.parserconstructor.utils.and_(
         text,
@@ -201,9 +178,11 @@ def parse_next_rule(text, start):
             ]
         )
 
-    if res is not None:
-        for i in res:
-            ret.add_child(i)
+    if res is None:
+        ret = None
+
+    if ret is not None:
+        ret.append_children_from_list(res)
 
     if ret is not None:
         ret.reset_indexes_by_children()
@@ -211,11 +190,10 @@ def parse_next_rule(text, start):
     return ret
 
 
-def parse_next_rulename(text, start):
+def parse_next_rulename(text, start, error_log):
     r'({ALPHA})(({ALPHA})|({DIGIT})|-)*'
 
-    ret = wayround_org.parserconstructor.ast.Node()
-    ret.name = 'rulename'
+    ret = wayround_org.parserconstructor.ast.Node('rulename', start)
 
     res = parse_next_ALPHA(text, start)
 
@@ -230,13 +208,11 @@ def parse_next_rulename(text, start):
             text,
             start,
             wayround_org.parserconstructor.utils.or_,
-            (
-                [
-                    parse_next_ALPHA,
-                    parse_next_DIGIT,
-                    parse_next_hyphen
-                    ],
-                )
+            [
+                parse_next_ALPHA,
+                parse_next_DIGIT,
+                parse_next_hyphen
+                ]
             )
 
         ret.append_children_from_list(res)
@@ -247,7 +223,7 @@ def parse_next_rulename(text, start):
     return ret
 
 
-def parse_next_hyphen(text, start):
+def parse_next_hyphen(text, start, error_log):
     ret = wayround_org.parserconstructor.utils.parse_next_re(
         text,
         start,
@@ -256,11 +232,10 @@ def parse_next_hyphen(text, start):
     return ret
 
 
-def parse_next_defined_as(text, start):
+def parse_next_defined_as(text, start, error_log):
     r'({c-wsp})*(=|(=\/))({c-wsp})*'
 
-    ret = wayround_org.parserconstructor.ast.Node()
-    ret.name = 'defined-as'
+    ret = wayround_org.parserconstructor.ast.Node('defined-as', start)
 
     start = parse_next_c_wsp_any_number(text, start, ret)
 
@@ -283,11 +258,10 @@ def parse_next_defined_as(text, start):
     return ret
 
 
-def parse_next_elements(text, start):
+def parse_next_elements(text, start, error_log):
     r'({alternation})({c-wsp})*'
 
-    ret = wayround_org.parserconstructor.ast.Node()
-    ret.name = 'elements'
+    ret = wayround_org.parserconstructor.ast.Node('elements', start)
 
     res = parse_next_alternation(text, start)
     if res is None:
@@ -307,17 +281,16 @@ def parse_next_elements(text, start):
     return ret
 
 
-def parse_next_c_wsp(text, start):
+def parse_next_c_wsp(text, start, error_log):
     r'(({WSP})|(({c-nl})({WSP})))'
 
-    ret = wayround_org.parserconstructor.ast.Node()
-    ret.name = 'c-wsp'
+    ret = wayround_org.parserconstructor.ast.Node('c-wsp', start)
 
     res = parse_next_c_nl(text, start)
 
     if res is not None:
-        start = res.index1
         ret.append_child(res)
+        start = res.index1
 
     res = parse_next_WSP(text, start)
 
@@ -333,11 +306,10 @@ def parse_next_c_wsp(text, start):
     return ret
 
 
-def parse_next_c_nl(text, start):
+def parse_next_c_nl(text, start, error_log):
     r'(({comment})|({CRLF}))'
-    # ; comment or newline
-    ret = wayround_org.parserconstructor.ast.Node()
-    ret.name = 'c-nl'
+
+    ret = wayround_org.parserconstructor.ast.Node('c-nl', start)
 
     res = wayround_org.parserconstructor.utils.or_(
         text,
@@ -345,7 +317,7 @@ def parse_next_c_nl(text, start):
         [
             parse_next_comment,
             parse_next_CRLF
-            ],
+            ]
         )
 
     if res is None:
@@ -357,14 +329,40 @@ def parse_next_c_nl(text, start):
     return ret
 
 
-def parse_next_comment(text, start):
+def parse_next_comment(text, start, error_log):
     r';(({WSP})|({VCHAR}))*({CRLF})',
-    ret = wayround_org.parserconstructor.ast.Node()
-    ret.name = 'comment'
 
-    start = parse_next_c_wsp_any_number(text, start, ret)
+    ret = wayround_org.parserconstructor.ast.Node('comment', start)
 
-    res = parse_next_CRLF(text, start)
+    res = wayround_org.parserconstructor.utils.parse_next_re(
+        text, start, r';'
+        )
+
+    if res is None:
+        ret = None
+
+    if ret is not None:
+        ret.append_child(res)
+        start = res.index1
+
+    if ret is not None:
+
+        res = wayround_org.parserconstructor.utils.any_number(
+            text,
+            start,
+            wayround_org.parserconstructor.utils.or_,
+            [
+                parse_next_WSP,
+                parse_next_VCHAR
+                ]
+            )
+
+        ret.append_children_from_list(res)
+
+        if len(res) != 0:
+            start = res[-1].index1
+
+        res = parse_next_CRLF(text, start)
 
     if res is None:
         ret = None
@@ -375,10 +373,10 @@ def parse_next_comment(text, start):
     return ret
 
 
-def parse_next_alternation(text, start):
+def parse_next_alternation(text, start, error_log):
     r'({concatenation})(({c-wsp})*\/({c-wsp})*({concatenation}))*'
-    ret = wayround_org.parserconstructor.ast.Node()
-    ret.name = 'alternation'
+
+    ret = wayround_org.parserconstructor.ast.Node('alternation', start)
 
     res = parse_next_concatenation(text, start)
 
@@ -431,17 +429,13 @@ def parse_next_alternation(text, start):
     return ret
 
 
-def parse_next_x_any_number(text, start, parser_callback, target_node):
+def parse_next_x_any_number(text, start, error_log, parser_callback, target_node):
 
     res = wayround_org.parserconstructor.utils.any_number(
         text,
         start,
         wayround_org.parserconstructor.utils.or_,
-        (
-            [
-                parser_callback
-                ],
-            )
+        [parser_callback]
         )
 
     if len(res) != 0:
@@ -451,15 +445,15 @@ def parse_next_x_any_number(text, start, parser_callback, target_node):
     return start
 
 
-def parse_next_c_wsp_any_number(text, start, target_node):
+def parse_next_c_wsp_any_number(text, start, error_log, target_node):
     ret = parse_next_x_any_number(text, start, parse_next_c_wsp, target_node)
     return ret
 
 
-def parse_next_concatenation(text, start):
+def parse_next_concatenation(text, start, error_log):
     r'({repetition})(({c-wsp})+({repetition}))*'
-    ret = wayround_org.parserconstructor.ast.Node()
-    ret.name = 'concatenation'
+
+    ret = wayround_org.parserconstructor.ast.Node('concatenation', start)
 
     res = parse_next_repetition(text, start)
 
@@ -497,10 +491,10 @@ def parse_next_concatenation(text, start):
     return ret
 
 
-def parse_next_repetition(text, start):
+def parse_next_repetition(text, start, error_log):
     r'({repeat})?({element})'
-    ret = wayround_org.parserconstructor.ast.Node()
-    ret.name = 'repetition'
+
+    ret = wayround_org.parserconstructor.ast.Node('repetition', start)
 
     res = parse_next_repeat(text, start)
 
@@ -522,10 +516,10 @@ def parse_next_repetition(text, start):
     return ret
 
 
-def parse_next_repeat(text, start):
+def parse_next_repeat(text, start, error_log):
     r'((({DIGIT})+)|((({DIGIT})*)\*(({DIGIT})*)))'
-    ret = wayround_org.parserconstructor.ast.Node()
-    ret.name = 'repeat'
+
+    ret = wayround_org.parserconstructor.ast.Node('repeat', start)
 
     _start = parse_next_x_any_number(text, start, parse_next_DIGIT, ret)
 
@@ -556,10 +550,10 @@ def parse_next_repeat(text, start):
     return ret
 
 
-def parse_next_element(text, start):
+def parse_next_element(text, start, error_log):
     r'(({rulename})|({group})|({option})|({char-val})|({num-val})|({prose-val}))'
-    ret = wayround_org.parserconstructor.ast.Node()
-    ret.name = 'element'
+
+    ret = wayround_org.parserconstructor.ast.Node('element', start)
 
     res = wayround_org.parserconstructor.utils.or_(
         text,
@@ -568,9 +562,9 @@ def parse_next_element(text, start):
             parse_next_rulename,
             parse_next_group,
             parse_next_option,
-            parse_next_char - val,
-            parse_next_num - val,
-            parse_next_prose - val
+            parse_next_char_val,
+            parse_next_num_val,
+            parse_next_prose_val
             ]
         )
 
@@ -586,10 +580,10 @@ def parse_next_element(text, start):
     return ret
 
 
-def parse_next_group(text, start):
+def parse_next_group(text, start, error_log):
     r'\(({c-wsp})*({alternation})({c-wsp})*\)'
-    ret = wayround_org.parserconstructor.ast.Node()
-    ret.name = 'group'
+
+    ret = wayround_org.parserconstructor.ast.Node('group', start)
 
     res = wayround_org.parserconstructor.utils.parse_next_re(
         text, start, r'\('
@@ -626,10 +620,10 @@ def parse_next_group(text, start):
     return ret
 
 
-def parse_next_option(text, start):
+def parse_next_option(text, start, error_log):
     r'\[({c-wsp})*({alternation})({c-wsp})*\]'
-    ret = wayround_org.parserconstructor.ast.Node()
-    ret.name = 'option'
+
+    ret = wayround_org.parserconstructor.ast.Node('option', start)
 
     res = wayround_org.parserconstructor.utils.parse_next_re(
         text, start, r'\['
@@ -666,12 +660,12 @@ def parse_next_option(text, start):
     return ret
 
 
-def parse_next_char_val(text, start):
+def parse_next_char_val(text, start, error_log):
     r'({DQUOTE})([\x20-\x21]|[\x23-\x7e])*({DQUOTE})'
     # ; quoted string of SP and VCHAR
     # ;  without DQUOTE
-    ret = wayround_org.parserconstructor.ast.Node()
-    ret.name = 'char-val'
+
+    ret = wayround_org.parserconstructor.ast.Node('char-val', start)
 
     res = wayround_org.parserconstructor.utils.parse_next_re(
         text, start, r'\"'
@@ -715,10 +709,10 @@ def parse_next_char_val(text, start):
     return ret
 
 
-def parse_next_num_val(text, start):
+def parse_next_num_val(text, start, error_log):
     r'\%(({bin-val})|({dec-val})|({hex-val}))'
-    ret = wayround_org.parserconstructor.ast.Node()
-    ret.name = 'num-val'
+
+    ret = wayround_org.parserconstructor.ast.Node('num-val', start)
 
     res = wayround_org.parserconstructor.utils.parse_next_re(
         text, start, r'\%'
@@ -755,7 +749,7 @@ def parse_next_num_val(text, start):
     return ret
 
 
-def parse_next_x_val(text, start, prefix, target_node):
+def parse_next_x_val(text, start, error_log, prefix, target_node):
 
     if prefix not in 'bdx':
         raise ValueError("`prefix' is invalid")
@@ -763,11 +757,14 @@ def parse_next_x_val(text, start, prefix, target_node):
     ret = True
 
     if prefix == 'b':
-        digit_re = BIT_RE
+        digit_re = RULES['BIT']
+        digit_parser = parse_next_BIT
     elif prefix == 'd':
-        digit_re = DIGIT_RE
+        digit_re = RULES['DIGIT']
+        digit_parser = parse_next_DIGIT
     elif prefix == 'x':
-        digit_re = HEXDIG_RE
+        digit_re = RULES['HEXDIG']
+        digit_parser = parse_next_HEXDIG
     else:
         raise Exception("programming error")
 
@@ -800,7 +797,11 @@ def parse_next_x_val(text, start, prefix, target_node):
 
             while True:
 
-                res = parse_next_re(text, start, r'\.({})+'.format(digit_re))
+                res = wayround_org.parserconstructor.utils.parse_next_re(
+                    text,
+                    start,
+                    r'\.({})+'.format(digit_re)
+                    )
 
                 if res is None:
                     break
@@ -810,7 +811,7 @@ def parse_next_x_val(text, start, prefix, target_node):
                     start = res.index1
 
             if len(dotted_elements) > 1:
-                tet.append_children_from_list(dotted_elements)
+                target_node.append_children_from_list(dotted_elements)
 
             del dotted_elements
 
@@ -825,7 +826,7 @@ def parse_next_x_val(text, start, prefix, target_node):
                 )
 
             if res is not None:
-                ret.append_child(res)
+                target_node.append_child(res)
 
         else:
             pass
@@ -833,14 +834,14 @@ def parse_next_x_val(text, start, prefix, target_node):
     return start
 
 
-def parse_next_bin_val(text, start):
+def parse_next_bin_val(text, start, error_log):
     r'b({BIT})+((\.({BIT})+)+|(\-({BIT})+))?'
     # ; series of concatenated bit values
     # ;  or single ONEOF range
-    ret = wayround_org.parserconstructor.ast.Node()
-    ret.name = 'bin-val'
 
-    if not parse_parse_next_x_val(text, start, 'b', parse_next_BIT, ret):
+    ret = wayround_org.parserconstructor.ast.Node('bin-val', start)
+
+    if not parse_next_x_val(text, start, 'b', ret):
         ret = None
 
     if ret is not None:
@@ -849,12 +850,12 @@ def parse_next_bin_val(text, start):
     return ret
 
 
-def parse_next_dec_val(text, start):
+def parse_next_dec_val(text, start, error_log):
     r'd({DIGIT})+((\.({DIGIT})+)+|(\-({DIGIT})+))?'
-    ret = wayround_org.parserconstructor.ast.Node()
-    ret.name = 'dec-val'
 
-    if not parse_parse_next_x_val(text, start, 'd', parse_next_DIGIT, ret):
+    ret = wayround_org.parserconstructor.ast.Node('dec-val', start)
+
+    if not parse_next_x_val(text, start, 'd', ret):
         ret = None
 
     if ret is not None:
@@ -863,12 +864,12 @@ def parse_next_dec_val(text, start):
     return ret
 
 
-def parse_next_hex_val(text, start):
+def parse_next_hex_val(text, start, error_log):
     r'x({HEXDIG})+((\.({HEXDIG})+)+|(\-({HEXDIG})+))?'
-    ret = wayround_org.parserconstructor.ast.Node()
-    ret.name = 'hex-val'
 
-    if not parse_parse_next_x_val(text, start, 'x', parse_next_HEXDIG, ret):
+    ret = wayround_org.parserconstructor.ast.Node('hex-val', start)
+
+    if not parse_next_x_val(text, start, 'x', ret):
         ret = None
 
     if ret is not None:
@@ -877,10 +878,10 @@ def parse_next_hex_val(text, start):
     return ret
 
 
-def parse_next_prose_val(text, start):
+def parse_next_prose_val(text, start, error_log):
     r'\<([\x20-\x3d]|[\x3f-\x7e])*\>'
-    ret = wayround_org.parserconstructor.ast.Node()
-    ret.name = 'prose-val'
+
+    ret = wayround_org.parserconstructor.ast.Node('prose-val', start)
 
     res = wayround_org.parserconstructor.utils.parse_next_re(
         text, start, r'\<'
@@ -924,27 +925,11 @@ def parse_next_prose_val(text, start):
     return ret
 
 
-def parse_next_HEXDIG(text, start):
-    ret = wayround_org.parserconstructor.ast.Node()
-    ret.name = 'HEXDIG'
+def parse_next_HEXDIG(text, start, error_log):
 
-    res = HEXDIG_RE_C.match(text, pos=start)
+    ret = wayround_org.parserconstructor.ast.Node('HEXDIG', start)
 
-    if res is None:
-        ret = None
-
-    if ret is not None:
-        ret.index0 = res.start()
-        ret.index1 = res.end()
-
-    return ret
-
-
-def parse_next_DIGIT(text, start):
-    ret = wayround_org.parserconstructor.ast.Node()
-    ret.name = 'DIGIT'
-
-    res = DIGIT_RE_C.match(text, pos=start)
+    res = RULES.compiled['HEXDIG'].match(text, pos=start)
 
     if res is None:
         ret = None
@@ -956,11 +941,27 @@ def parse_next_DIGIT(text, start):
     return ret
 
 
-def parse_next_BIT(text, start):
-    ret = wayround_org.parserconstructor.ast.Node()
-    ret.name = 'BIT'
+def parse_next_DIGIT(text, start, error_log):
 
-    res = BIT_RE_C.match(text, pos=start)
+    ret = wayround_org.parserconstructor.ast.Node('DIGIT', start)
+
+    res = RULES.compiled['DIGIT'].match(text, pos=start)
+
+    if res is None:
+        ret = None
+
+    if ret is not None:
+        ret.index0 = res.start()
+        ret.index1 = res.end()
+
+    return ret
+
+
+def parse_next_BIT(text, start, error_log):
+
+    ret = wayround_org.parserconstructor.ast.Node('BIT', start)
+
+    res = RULES.compiled['BIT'].match(text, pos=start)
 
     if res is None:
         ret = None
@@ -973,10 +974,10 @@ def parse_next_BIT(text, start):
 
 
 def parse_next_ALPHA(text, start):
-    ret = wayround_org.parserconstructor.ast.Node()
-    ret.name = 'ALPHA'
 
-    res = ALPHA_RE_C.match(text, pos=start)
+    ret = wayround_org.parserconstructor.ast.Node('ALPHA', start)
+
+    res = RULES.compiled['ALPHA'].match(text, pos=start)
 
     if res is None:
         ret = None
@@ -988,11 +989,43 @@ def parse_next_ALPHA(text, start):
     return ret
 
 
-def parse_next_WSP(text, start):
-    ret = wayround_org.parserconstructor.ast.Node()
-    ret.name = 'WSP'
+def parse_next_WSP(text, start, error_log):
 
-    res = WSP_RE_C.match(text, pos=start)
+    ret = wayround_org.parserconstructor.ast.Node('WSP', start)
+
+    res = RULES.compiled['WSP'].match(text, pos=start)
+
+    if res is None:
+        ret = None
+
+    if ret is not None:
+        ret.index0 = res.start()
+        ret.index1 = res.end()
+
+    return ret
+
+
+def parse_next_CRLF(text, start, error_log):
+
+    ret = wayround_org.parserconstructor.ast.Node('CRLF', start)
+
+    res = RULES.compiled['CRLF'].match(text, pos=start)
+
+    if res is None:
+        ret = None
+
+    if ret is not None:
+        ret.index0 = res.start()
+        ret.index1 = res.end()
+
+    return ret
+
+
+def parse_next_VCHAR(text, start, error_log):
+
+    ret = wayround_org.parserconstructor.ast.Node('CRLF', start)
+
+    res = RULES.compiled['CRLF'].match(text, pos=start)
 
     if res is None:
         ret = None
