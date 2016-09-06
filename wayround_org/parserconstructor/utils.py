@@ -148,6 +148,7 @@ def and_(text, start, error_log, parser_list):
 
         if ret is not None:
             ret.append(res)
+            start = res.index1
 
     return ret
 
@@ -173,9 +174,9 @@ def or_(text, start, error_log, parser_list):
     if len(ret) == 0:
         error_log.append(
             ErrorNote(
-                "OR statement didn't succeeded at any case"
-                ),
-            start
+                "OR statement didn't succeeded at any case",
+                start
+                )
             )
         ret = None
 
@@ -190,28 +191,34 @@ def any_number(text, start, error_log, callback, *args, **kwargs):
 
     ret = []
 
-    res = callback(text, start, error_log, *args, **kwargs)
+    while True:
 
-    # NOTE: if res is None, this is not error in context of any_number(),
-    #       as such error must be treated as resulting number eql to 0
-    #
-    #       so if res is not None, then it's must be list and it's contents
-    #       need to be added to ret list
+        res = callback(text, start, error_log, *args, **kwargs)
 
-    if res is not None:
+        # NOTE: if res is None, this is not error in context of any_number(),
+        #       as such error must be treated as resulting number eql to 0
+        #
+        #       so if res is not None, then it's must be list and it's contents
+        #       need to be added to ret list
 
-        if not isinstance(res, list):
-            raise ValueError("`callback()' must return None or list of Node")
+        if res is None:
+            break
 
-        for i in res:
-            if not isinstance(i, Node):
+        if res is not None:
+
+            if not isinstance(res, list):
                 raise ValueError(
-                    "`callback()' must return None or list of Node"
-                    )
+                    "`callback()' must return None or list of Node")
 
-        for i in res:
-            ret.append(i)
-            start = i.index1
+            for i in res:
+                if not isinstance(i, wayround_org.parserconstructor.ast.Node):
+                    raise ValueError(
+                        "`callback()' must return None or list of Node"
+                        )
+
+            for i in res:
+                ret.append(i)
+                start = i.index1
 
     return ret
 
