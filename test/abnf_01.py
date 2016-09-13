@@ -3,7 +3,7 @@ import os.path
 import pprint
 import collections
 
-import wayround_org.parserconstructor.abnf_abnf_h
+import wayround_org.pt.abnf_abnf_h
 
 
 def main():
@@ -14,7 +14,7 @@ def main():
             '..',
             '..',
             'wayround_org',
-            'parserconstructor',
+            'pt',
             'abnf.abnf'
             )
         )
@@ -29,7 +29,7 @@ def main():
 
     error_log = []
 
-    res = wayround_org.parserconstructor.abnf_abnf_h.parse(txt, error_log)
+    res = wayround_org.pt.abnf_abnf_h.parse(txt, error_log)
 
     if res is not None:
         print("parsing complete")

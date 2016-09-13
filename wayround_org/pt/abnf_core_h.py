@@ -1,8 +1,8 @@
 
-import wayround_org.parserconstructor.utils
+import wayround_org.pt.utils
 
 
-RULES = wayround_org.parserconstructor.utils.Rules(
+RULES = wayround_org.pt.utils.Rules(
     {
         'ALPHA': r'([\x41-\x5A]|[\x61-\x7A])',  # ; A-Z / a-z'
 
