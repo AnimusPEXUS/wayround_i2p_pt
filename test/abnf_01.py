@@ -1,5 +1,7 @@
 
 import os.path
+import pprint
+import collections
 
 import wayround_org.parserconstructor.abnf_abnf_h
 
@@ -29,11 +31,23 @@ def main():
 
     res = wayround_org.parserconstructor.abnf_abnf_h.parse(txt, error_log)
 
-    if len(error_log) != 0:
+    if res is not None:
+        print("parsing complete")
+
+        pprint.pprint(
+            res.render_dict(
+                dict_constructor=collections.OrderedDict,
+                slice_text=txt
+                )
+            )
+
+    else:
+        print("parsing failed")
+
         print("{} error(s)".format(len(error_log)))
 
-    for i in error_log:
-        print("{}: {}".format(i.index0, i.text))
+        for i in error_log:
+            print("{}: {}".format(i.index0, i.text))
 
     return res
 
