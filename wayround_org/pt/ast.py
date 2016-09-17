@@ -25,6 +25,18 @@ class Node:
         return len(self._children)
 
     @property
+    def text(self):
+        return self._text
+
+    @text.setter
+    def text(self, text):
+        if text not is None:
+            if type(text) not in [str, bytes]:
+                raise TypeError("`text' must be None or in [str, bytes]")
+        self._text = text
+        return
+
+    @property
     def name(self):
         return self._name
 
@@ -34,6 +46,10 @@ class Node:
             raise TypeError("`name' must be str")
         self._name = value
         return
+
+    @property
+    def children(self):
+        return self._children
 
     @property
     def index0(self):
@@ -114,21 +130,30 @@ class Node:
             self.index1 = self.index0
         return
 
-    def get_text(self, text):
+    def get_text(self, text=None):
+
+        if text is None:
+            text = self._text
+
         ret = None
+
         if self.index0 is not None and self.index1 is not None:
             ret = text[self.index0:self.index1]
         else:
             raise Exception("index0 or index1 is None")
         return ret
 
-    def render_dict(self, slice_text=False, dict_constructor=dict):
+    def render_dict(self, text=None, dict_constructor=dict):
+
+        if text is None:
+            if self._text is not None:
+                text = self._text
 
         if (
-            slice_text != False
-                and type(slice_text) not in [str, bytes]):
+            text is not None
+                and type(text) not in [str, bytes]):
             raise TypeError(
-                "if slice_text is not None, then it"
+                "if text is not None, then it"
                 " must be str or bytes type"
                 )
 
@@ -137,17 +162,14 @@ class Node:
         ret['index0'] = self.index0
         ret['index1'] = self.index1
 
-        if slice_text != False:
-            ret['text'] = self.get_text(slice_text)
+        if text is not None:
+            ret['text'] = self.get_text(text)
 
         c = []
 
         for i in self._children:
             c.append(
-                i.render_dict(
-                    slice_text=slice_text,
-                    dict_constructor=dict_constructor
-                    )
+                i.render_dict(text=text, dict_constructor=dict_constructor)
                 )
 
         ret['children'] = c
@@ -158,4 +180,25 @@ class Node:
         ret = self
         while ret.parent is not None:
             ret = self.parent
+        return ret
+
+    def get_children_by_name(self, value):
+
+        ret = []
+
+        for i in self.children:
+            if i.name == value:
+                ret.append(i)
+
+        return ret
+
+    def get_child_by_name(self, value):
+
+        ret = None
+
+        for i in self.children:
+            if i.name == value:
+                ret = i
+                break
+
         return ret

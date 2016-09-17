@@ -2,7 +2,7 @@
 import regex
 import itertools
 
-import wayround_org.parserconstructor.ast
+import wayround_org.pt.ast
 
 
 RULENAME_RE = (
@@ -134,7 +134,7 @@ def and_(text, start, error_log, parser_list):
 
         res = i(text, start, error_log)
 
-        if not isinstance(res, wayround_org.parserconstructor.ast.Node):
+        if not isinstance(res, wayround_org.pt.ast.Node):
             error_log.append(
                 ErrorNote(
                     "AND statement didn't succeeded with parser {}".format(i),
@@ -166,7 +166,7 @@ def or_(text, start, error_log, parser_list):
 
         res = i(text, start, error_log)
 
-        if isinstance(res, wayround_org.parserconstructor.ast.Node):
+        if isinstance(res, wayround_org.pt.ast.Node):
             ret.append(res)
             # start = res.index1 # not needed here
             break
@@ -211,7 +211,7 @@ def any_number(text, start, error_log, callback, *args, **kwargs):
                     "`callback()' must return None or list of Node")
 
             for i in res:
-                if not isinstance(i, wayround_org.parserconstructor.ast.Node):
+                if not isinstance(i, wayround_org.pt.ast.Node):
                     raise ValueError(
                         "`callback()' must return None or list of Node"
                         )
@@ -235,7 +235,7 @@ def parse_next_re(text, start, error_log, re_, name='string'):
     .match() method.
     """
 
-    ret = wayround_org.parserconstructor.ast.Node(name, start)
+    ret = wayround_org.pt.ast.Node(name, start)
 
     if isinstance(re_, str):
         re_ = regex.compile(re_)
